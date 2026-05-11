@@ -1,0 +1,72 @@
+openapi: 3.0.0
+info:
+  title: API de Gestión de Árbol de Archivos
+  description: Contrato de servicios para el motor de estructuras jerárquicas (Proyecto Final).
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8080
+    description: Servidor local de desarrollo
+
+paths:
+  /nodes:
+    get:
+      summary: Listar todos los nodos
+      description: Retorna la estructura jerárquica completa del árbol.
+      responses:
+        '200':
+          description: Lista de nodos obtenida correctamente.
+    post:
+      summary: Crear un nuevo nodo
+      description: Crea una carpeta o archivo bajo un nodo padre.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                parentId:
+                  type: string
+                name:
+                  type: string
+                type:
+                  type: string
+                  enum: [FILE, FOLDER]
+      responses:
+        '201':
+          description: Nodo creado con éxito.
+
+  /nodes/{id}:
+    get:
+      summary: Buscar nodo por ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Nodo encontrado.
+        '404':
+          description: El nodo no existe.
+    delete:
+      summary: Eliminar un nodo
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Nodo eliminado (incluyendo sus hijos).
+
+  /nodes/search/dfs:
+    get:
+      summary: Obtener recorrido DFS
+      description: Retorna los nodos ordenados mediante el algoritmo Depth First Search.
+      responses:
+        '200':
+          description: Recorrido generado.
