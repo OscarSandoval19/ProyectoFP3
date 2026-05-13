@@ -14,15 +14,21 @@ public interface TreeAlgorithmStrategy<T> {
 
     List<T> getTree();
 
+    List<T> getSubtree(String nodeId);
+
+    List<T> getPath(String nodeId);
+
     List<T> getDFS();
 
     List<T> getBFS();
 
-    List<T> getLeaves();
+    int getHeight();
 
     int getLevel(String id);
 
-    int getHeight();
+    List<T> getAncestors(String nodeId);
 
     boolean hasCycles();
+
+    List<T> getLeaves();
 }

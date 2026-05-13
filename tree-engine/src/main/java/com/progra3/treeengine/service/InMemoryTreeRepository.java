@@ -5,7 +5,7 @@ import java.util.*;
 public class InMemoryTreeRepository implements TreeAlgorithmStrategy<Node> {
 
     private Node root;
-    private Map<String, Node> nodeMap = new HashMap<>(); 
+    private final Map<String, Node> nodeMap = new HashMap<>();
 
     @Override
     public void createRoot(Node data) {
@@ -27,7 +27,7 @@ public class InMemoryTreeRepository implements TreeAlgorithmStrategy<Node> {
         Node node = nodeMap.get(id);
         if (node != null && node.getParentId() != null) {
             Node parent = nodeMap.get(node.getParentId());
-            parent.getChildren().remove(node);
+            if (parent != null) parent.getChildren().remove(node);
             removeRecursive(node);
         }
     }
@@ -46,7 +46,39 @@ public class InMemoryTreeRepository implements TreeAlgorithmStrategy<Node> {
 
     @Override
     public List<Node> getTree() {
-        return new ArrayList<>(nodeMap.values());
+        if (root == null) return Collections.emptyList();
+        return collectPreOrder(root);
+    }
+
+    private List<Node> collectPreOrder(Node node) {
+        List<Node> result = new ArrayList<>();
+        if (node == null) return result;
+        result.add(node);
+        for (Node child : node.getChildren()) {
+            result.addAll(collectPreOrder(child));
+        }
+        return result;
+    }
+
+    @Override
+    public List<Node> getSubtree(String nodeId) {
+        Node node = nodeMap.get(nodeId);
+        if (node == null) return Collections.emptyList();
+        return collectPreOrder(node);
+    }
+
+    @Override
+    public List<Node> getPath(String nodeId) {
+        Node node = nodeMap.get(nodeId);
+        if (node == null) return Collections.emptyList();
+        Deque<Node> path = new ArrayDeque<>();
+        Node current = node;
+        while (current != null) {
+            path.addFirst(current);
+            if (current.getParentId() == null) break;
+            current = nodeMap.get(current.getParentId());
+        }
+        return new ArrayList<>(path);
     }
 
     @Override
@@ -79,26 +111,6 @@ public class InMemoryTreeRepository implements TreeAlgorithmStrategy<Node> {
     }
 
     @Override
-    public List<Node> getLeaves() {
-        List<Node> leaves = new ArrayList<>();
-        for (Node n : nodeMap.values()) {
-            if (n.getChildren().isEmpty()) leaves.add(n);
-        }
-        return leaves;
-    }
-
-    @Override
-    public int getLevel(String id) {
-        int level = 0;
-        Node current = nodeMap.get(id);
-        while (current != null && current.getParentId() != null) {
-            level++;
-            current = nodeMap.get(current.getParentId());
-        }
-        return level;
-    }
-
-    @Override
     public int getHeight() {
         return calculateHeight(root);
     }
@@ -113,8 +125,52 @@ public class InMemoryTreeRepository implements TreeAlgorithmStrategy<Node> {
     }
 
     @Override
-    public boolean hasCycles() {
+    public int getLevel(String id) {
+        int level = 0;
+        Node current = nodeMap.get(id);
+        while (current != null && current.getParentId() != null) {
+            level++;
+            current = nodeMap.get(current.getParentId());
+        }
+        return level;
+    }
 
+    @Override
+    public List<Node> getAncestors(String nodeId) {
+        Node node = nodeMap.get(nodeId);
+        if (node == null || node.getParentId() == null) return Collections.emptyList();
+        Deque<Node> ancestors = new ArrayDeque<>();
+        Node current = nodeMap.get(node.getParentId());
+        while (current != null) {
+            ancestors.addFirst(current);
+            if (current.getParentId() == null) break;
+            current = nodeMap.get(current.getParentId());
+        }
+        return new ArrayList<>(ancestors);
+    }
+
+    @Override
+    public boolean hasCycles() {
+        Set<String> visited = new HashSet<>();
+        return detectCycle(root, visited);
+    }
+
+    private boolean detectCycle(Node node, Set<String> visited) {
+        if (node == null) return false;
+        if (visited.contains(node.getId())) return true;
+        visited.add(node.getId());
+        for (Node child : node.getChildren()) {
+            if (detectCycle(child, visited)) return true;
+        }
         return false;
+    }
+
+    @Override
+    public List<Node> getLeaves() {
+        List<Node> leaves = new ArrayList<>();
+        for (Node n : nodeMap.values()) {
+            if (n.getChildren().isEmpty()) leaves.add(n);
+        }
+        return leaves;
     }
 }
