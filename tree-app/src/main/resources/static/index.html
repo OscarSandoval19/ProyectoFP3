@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Gestor de Carpetas y Archivos</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <main class="app">
+        <section class="panel">
+            <h1>Gestor de Carpetas y Archivos</h1>
+            <p class="subtitle">Caso 3 - Sistema jerárquico con carpetas y archivos</p>
+
+            <form id="node-form" class="form">
+                <input type="text" id="name" placeholder="Nombre del nodo" required>
+
+                <select id="type">
+                    <option value="FOLDER">Carpeta</option>
+                    <option value="FILE">Archivo</option>
+                </select>
+
+                <select id="parentId">
+                    <option value="">Sin padre (raíz)</option>
+                </select>
+
+                <button type="submit">Crear nodo</button>
+            </form>
+        </section>
+
+        <section class="tree-panel">
+            <h2>Árbol de carpetas</h2>
+            <div id="tree-container" class="tree-container"></div>
+        </section>
+    </main>
+
+    <script src="app.js"></script>
+</body>
+</html>
