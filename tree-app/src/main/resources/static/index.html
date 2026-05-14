@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestor de Arbol de Archivos</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Gestor de Arbol de Archivos</h1>
+
+        <section class="card">
+            <h2>Crear Raiz</h2>
+            <input type="text" id="rootName" placeholder="Nombre">
+            <select id="rootType">
+                <option value="FOLDER">FOLDER</option>
+                <option value="FILE">FILE</option>
+            </select>
+            <button onclick="createRoot()">Crear</button>
+        </section>
+
+        <section class="card">
+            <h2>Agregar Hijo</h2>
+            <input type="text" id="parentId" placeholder="ID del padre">
+            <input type="text" id="childName" placeholder="Nombre">
+            <select id="childType">
+                <option value="FOLDER">FOLDER</option>
+                <option value="FILE">FILE</option>
+            </select>
+            <button onclick="addChild()">Agregar</button>
+        </section>
+
+        <section class="card">
+            <h2>Buscar Nodo</h2>
+            <input type="text" id="searchId" placeholder="ID del nodo">
+            <button onclick="findNode()">Buscar</button>
+        </section>
+
+        <section class="card">
+            <h2>Eliminar Nodo</h2>
+            <input type="text" id="deleteId" placeholder="ID del nodo">
+            <button onclick="deleteNode()">Eliminar</button>
+        </section>
+
+        <section class="card">
+            <h2>Operaciones del Arbol</h2>
+            <button onclick="getTree()">Ver Arbol Completo</button>
+            <button onclick="getDFS()">Recorrido DFS</button>
+            <button onclick="getBFS()">Recorrido BFS</button>
+            <button onclick="getHeight()">Altura</button>
+            <button onclick="validate()">Validar Ciclos</button>
+        </section>
+
+        <section class="card">
+            <h2>Por Nodo</h2>
+            <input type="text" id="nodeOpId" placeholder="ID del nodo">
+            <button onclick="getSubtree()">Subarbol</button>
+            <button onclick="getPath()">Ruta desde Raiz</button>
+            <button onclick="getAncestors()">Ancestros</button>
+            <button onclick="getDepth()">Profundidad</button>
+        </section>
+
+        <section class="card result-card">
+            <h2>Resultado</h2>
+            <pre id="result">Los resultados aparecen aqui...</pre>
+        </section>
+    </div>
+    <script src="app.js"></script>
+</body>
+</html>
