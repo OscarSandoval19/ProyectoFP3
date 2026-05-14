@@ -26,7 +26,7 @@ public class TreeController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<NodeDTO> findById(@PathVariable String id) {
+    public ResponseEntity<NodeDTO> findById(@PathVariable("id") String id) {
         return treeOrchestratorService.findById(id)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
@@ -54,7 +54,7 @@ public class TreeController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Map<String, String>> deleteNode(@PathVariable String id) {
+    public ResponseEntity<Map<String, String>> deleteNode(@PathVariable("id") String id) {
         treeOrchestratorService.deleteNode(id);
         return ResponseEntity.ok(Map.of("message", "Nodo eliminado correctamente"));
     }
