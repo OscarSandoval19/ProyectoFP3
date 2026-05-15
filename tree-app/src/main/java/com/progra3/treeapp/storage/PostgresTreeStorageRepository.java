@@ -34,11 +34,7 @@ public class PostgresTreeStorageRepository implements TreeStorageRepository {
         repo.save(toEntity(node));
     }
 
-    @Repository
-    public interface PostgresNodeRepository extends JpaRepository<NodeEntity, String> {
-
-        List<NodeEntity> findByParentId(String parentId);
-    }
+ 
     @Override
     public NodeDTO findById(String id) {
         return repo.findById(id).map(this::toDTO).orElse(null);
