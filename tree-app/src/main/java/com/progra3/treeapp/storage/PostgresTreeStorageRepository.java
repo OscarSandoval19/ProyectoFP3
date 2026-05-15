@@ -3,6 +3,8 @@ package com.progra3.treeapp.storage;
 import com.progra3.treeapp.model.NodeEntity;
 import com.progra3.treeapp.repository.postgres.PostgresNodeRepository;
 import com.progra3.treeengine.dto.NodeDTO;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
@@ -32,6 +34,11 @@ public class PostgresTreeStorageRepository implements TreeStorageRepository {
         repo.save(toEntity(node));
     }
 
+    @Repository
+    public interface PostgresNodeRepository extends JpaRepository<NodeEntity, String> {
+
+        List<NodeEntity> findByParentId(String parentId);
+    }
     @Override
     public NodeDTO findById(String id) {
         return repo.findById(id).map(this::toDTO).orElse(null);
