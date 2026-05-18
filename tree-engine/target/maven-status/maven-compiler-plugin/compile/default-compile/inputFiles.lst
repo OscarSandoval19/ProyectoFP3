@@ -1,3 +1,6 @@
-C:\Users\USUARIOTC\Desktop\ProyectoFinal\Proyecto-final\tree-engine\src\main\java\com\progra3\treeengine\service\InMemoryTreeRepository.java
-C:\Users\USUARIOTC\Desktop\ProyectoFinal\Proyecto-final\tree-engine\src\main\java\com\progra3\treeengine\service\Node.java
-C:\Users\USUARIOTC\Desktop\ProyectoFinal\Proyecto-final\tree-engine\src\main\java\com\progra3\treeengine\service\TreeAlgorithmStrategy.java
+C:\Users\USUARIOTC\Desktop\ProyectoFP3\tree-engine\src\main\java\com\progra3\treeengine\dto\NodeDTO.java
+C:\Users\USUARIOTC\Desktop\ProyectoFP3\tree-engine\src\main\java\com\progra3\treeengine\service\InMemoryTreeRepository.java
+C:\Users\USUARIOTC\Desktop\ProyectoFP3\tree-engine\src\main\java\com\progra3\treeengine\service\Node.java
+C:\Users\USUARIOTC\Desktop\ProyectoFP3\tree-engine\src\main\java\com\progra3\treeengine\service\TreeAlgorithmStrategy.java
+C:\Users\USUARIOTC\Desktop\ProyectoFP3\tree-engine\src\main\java\com\progra3\treeengine\strategy\CollectionsTreeStrategy.java
+C:\Users\USUARIOTC\Desktop\ProyectoFP3\tree-engine\src\main\java\com\progra3\treeengine\strategy\CustomTreeStrategy.java
