@@ -4,5 +4,6 @@ com\progra3\treeengine\strategy\CustomTreeStrategy$CustomNodeIndex.class
 com\progra3\treeengine\dto\NodeDTO.class
 com\progra3\treeengine\strategy\CustomTreeStrategy.class
 com\progra3\treeengine\strategy\CollectionsTreeStrategy.class
+com\progra3\treeengine\strategy\CustomTreeStrategy$CustomNodeIndex$IndexEntry.class
 com\progra3\treeengine\service\TreeAlgorithmStrategy.class
 com\progra3\treeengine\strategy\CustomTreeStrategy$CustomNode.class

@@ -2,70 +2,162 @@ package com.progra3.treeengine.strategy;
 
 import com.progra3.treeengine.dto.NodeDTO;
 import com.progra3.treeengine.service.TreeAlgorithmStrategy;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Deque;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.Queue;
 
+@Component
+@ConditionalOnProperty(name = "app.tree-strategy", havingValue = "custom")
 public class CustomTreeStrategy implements TreeAlgorithmStrategy<NodeDTO> {
 
     private CustomNode root;
     private final CustomNodeIndex index = new CustomNodeIndex();
 
+    
     private static class CustomNode {
         final NodeDTO data;
-        final List<CustomNode> children = new ArrayList<>();
-        CustomNode(NodeDTO data) { this.data = data; }
+        CustomNode firstChild;   
+        CustomNode nextSibling;  
+
+        CustomNode(NodeDTO data) { 
+            this.data = data; 
+            this.firstChild = null;
+            this.nextSibling = null;
+        }
     }
 
+  
     private static class CustomNodeIndex {
-        private final List<CustomNode> entries = new ArrayList<>();
-        void put(CustomNode node) { entries.add(node); }
+        private static class IndexEntry {
+            CustomNode node;
+            IndexEntry next;
+            IndexEntry(CustomNode node, IndexEntry next) {
+                this.node = node;
+                this.next = next;
+            }
+        }
+
+        private IndexEntry head = null;
+
+        void put(CustomNode node) {
+            head = new IndexEntry(node, head);
+        }
+
         CustomNode get(String id) {
-            for (CustomNode e : entries)
-                if (e.data.id().equals(id)) return e;
+            IndexEntry current = head;
+            while (current != null) {
+                if (current.node.data.id().equals(id)) {
+                    return current.node;
+                }
+                current = current.next;
+            }
             return null;
         }
-        void remove(String id) { entries.removeIf(e -> e.data.id().equals(id)); }
-        List<CustomNode> all() { return entries; }
-        void clear() { entries.clear(); }
+
+        void remove(String id) {
+            if (head == null) return;
+            if (head.node.data.id().equals(id)) {
+                head = head.next;
+                return;
+            }
+            IndexEntry current = head;
+            while (current.next != null) {
+                if (current.next.node.data.id().equals(id)) {
+                    current.next = current.next.next;
+                    return;
+                }
+                current = current.next;
+            }
+        }
+
+        void clear() {
+            head = null;
+        }
+
+        List<CustomNode> all() {
+            List<CustomNode> list = new ArrayList<>();
+            IndexEntry current = head;
+            while (current != null) {
+                list.add(current.node);
+                current = current.next;
+            }
+            return list;
+        }
     }
 
     @Override
     public void createRoot(NodeDTO data) {
-        CustomNode node = new CustomNode(data);
-        this.root = node;
-        index.put(node);
+        index.clear();
+        this.root = new CustomNode(data);
+        index.put(root);
     }
 
     @Override
     public void insert(String parentId, NodeDTO data) {
         CustomNode parent = index.get(parentId);
-        if (parent == null)
+        if (parent == null) {
             throw new IllegalArgumentException("El nodo padre con ID " + parentId + " no existe.");
-        CustomNode node = new CustomNode(data);
-        parent.children.add(node);
-        index.put(node);
+        }
+        CustomNode newNode = new CustomNode(data);
+        index.put(newNode);
+
+        if (parent.firstChild == null) {
+            parent.firstChild = newNode;
+        } else {
+            CustomNode current = parent.firstChild;
+            while (current.nextSibling != null) {
+                current = current.nextSibling;
+            }
+            current.nextSibling = newNode;
+        }
     }
 
     @Override
     public void deleteNode(String id) {
-        CustomNode node = index.get(id);
-        if (node == null) return;
-        if (node.data.parentId() != null) {
-            CustomNode parent = index.get(node.data.parentId());
-            if (parent != null) parent.children.remove(node);
-        } else {
+        if (root != null && root.data.id().equals(id)) {
             root = null;
+            index.clear();
+            return;
         }
-        removeRecursive(node);
+
+        CustomNode target = index.get(id);
+        if (target == null) return;
+
+       
+        CustomNode parent = index.get(target.data.parentId());
+        if (parent != null) {
+            if (parent.firstChild == target) {
+                parent.firstChild = target.nextSibling;
+            } else {
+                CustomNode current = parent.firstChild;
+                while (current != null && current.nextSibling != target) {
+                    current = current.nextSibling;
+                }
+                if (current != null) {
+                    current.nextSibling = target.nextSibling;
+                }
+            }
+        }
+        removeRecursive(target);
     }
 
     private void removeRecursive(CustomNode node) {
+        if (node == null) return;
         index.remove(node.data.id());
-        for (CustomNode child : node.children) removeRecursive(child);
+        
+        CustomNode child = node.firstChild;
+        while (child != null) {
+            CustomNode next = child.nextSibling;
+            removeRecursive(child);
+            child = next;
+        }
     }
 
     @Override
@@ -76,23 +168,27 @@ public class CustomTreeStrategy implements TreeAlgorithmStrategy<NodeDTO> {
 
     @Override
     public List<NodeDTO> getTree() {
-        if (root == null) return Collections.emptyList();
-        return collectPreOrder(root);
+        List<NodeDTO> result = new ArrayList<>();
+        buildFlatList(root, result);
+        return result;
     }
 
-    private List<NodeDTO> collectPreOrder(CustomNode node) {
-        List<NodeDTO> result = new ArrayList<>();
-        if (node == null) return result;
+    private void buildFlatList(CustomNode node, List<NodeDTO> result) {
+        if (node == null) return;
         result.add(node.data);
-        for (CustomNode child : node.children) result.addAll(collectPreOrder(child));
-        return result;
+        CustomNode child = node.firstChild;
+        while (child != null) {
+            buildFlatList(child, result);
+            child = child.nextSibling;
+        }
     }
 
     @Override
     public List<NodeDTO> getSubtree(String nodeId) {
-        CustomNode node = index.get(nodeId);
-        if (node == null) return Collections.emptyList();
-        return collectPreOrder(node);
+        List<NodeDTO> result = new ArrayList<>();
+        CustomNode startNode = index.get(nodeId);
+        buildFlatList(startNode, result);
+        return result;
     }
 
     @Override
@@ -103,7 +199,6 @@ public class CustomTreeStrategy implements TreeAlgorithmStrategy<NodeDTO> {
         CustomNode current = node;
         while (current != null) {
             path.addFirst(current.data);
-            if (current.data.parentId() == null) break;
             current = index.get(current.data.parentId());
         }
         return new ArrayList<>(path);
@@ -112,26 +207,34 @@ public class CustomTreeStrategy implements TreeAlgorithmStrategy<NodeDTO> {
     @Override
     public List<NodeDTO> getDFS() {
         List<NodeDTO> result = new ArrayList<>();
-        dfsHelper(root, result);
+        dfsTraversal(root, result);
         return result;
     }
 
-    private void dfsHelper(CustomNode current, List<NodeDTO> result) {
-        if (current == null) return;
-        result.add(current.data);
-        for (CustomNode child : current.children) dfsHelper(child, result);
+    private void dfsTraversal(CustomNode node, List<NodeDTO> result) {
+        if (node == null) return;
+        result.add(node.data);
+        CustomNode child = node.firstChild;
+        while (child != null) {
+            dfsTraversal(child, result);
+            child = child.nextSibling;
+        }
     }
 
     @Override
     public List<NodeDTO> getBFS() {
+        if (root == null) return Collections.emptyList();
         List<NodeDTO> result = new ArrayList<>();
-        if (root == null) return result;
-        Deque<CustomNode> queue = new ArrayDeque<>();
+        Queue<CustomNode> queue = new LinkedList<>();
         queue.add(root);
         while (!queue.isEmpty()) {
             CustomNode current = queue.poll();
             result.add(current.data);
-            queue.addAll(current.children);
+            CustomNode child = current.firstChild;
+            while (child != null) {
+                queue.add(child);
+                child = child.nextSibling;
+            }
         }
         return result;
     }
@@ -142,19 +245,22 @@ public class CustomTreeStrategy implements TreeAlgorithmStrategy<NodeDTO> {
     }
 
     private int calculateHeight(CustomNode node) {
-        if (node == null || node.children.isEmpty()) return 0;
+        if (node == null) return 0;
         int maxHeight = 0;
-        for (CustomNode child : node.children) {
-            int h = calculateHeight(child);
-            if (h > maxHeight) maxHeight = h;
+        CustomNode child = node.firstChild;
+        while (child != null) {
+            maxHeight = Math.max(maxHeight, calculateHeight(child));
+            child = child.nextSibling;
         }
         return 1 + maxHeight;
     }
 
     @Override
     public int getLevel(String id) {
-        CustomNode current = index.get(id);
+        CustomNode node = index.get(id);
+        if (node == null) return 0;
         int level = 0;
+        CustomNode current = node;
         while (current != null && current.data.parentId() != null) {
             level++;
             current = index.get(current.data.parentId());
@@ -170,7 +276,6 @@ public class CustomTreeStrategy implements TreeAlgorithmStrategy<NodeDTO> {
         CustomNode current = index.get(node.data.parentId());
         while (current != null) {
             ancestors.addFirst(current.data);
-            if (current.data.parentId() == null) break;
             current = index.get(current.data.parentId());
         }
         return new ArrayList<>(ancestors);
@@ -183,11 +288,15 @@ public class CustomTreeStrategy implements TreeAlgorithmStrategy<NodeDTO> {
 
     private boolean detectCycle(CustomNode node, List<String> visited) {
         if (node == null) return false;
-        for (String v : visited)
+        for (String v : visited) {
             if (v.equals(node.data.id())) return true;
+        }
         visited.add(node.data.id());
-        for (CustomNode child : node.children)
+        CustomNode child = node.firstChild;
+        while (child != null) {
             if (detectCycle(child, visited)) return true;
+            child = child.nextSibling;
+        }
         visited.remove(visited.size() - 1);
         return false;
     }
@@ -195,8 +304,11 @@ public class CustomTreeStrategy implements TreeAlgorithmStrategy<NodeDTO> {
     @Override
     public List<NodeDTO> getLeaves() {
         List<NodeDTO> leaves = new ArrayList<>();
-        for (CustomNode n : index.all())
-            if (n.children.isEmpty()) leaves.add(n.data);
+        for (CustomNode node : index.all()) {
+            if (node.firstChild == null) {
+                leaves.add(node.data);
+            }
+        }
         return leaves;
     }
 }
