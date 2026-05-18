@@ -1,0 +1,14 @@
+com\progra3\treeapp\model\NodeEntity.class
+com\progra3\treeapp\service\TreeOrchestratorService.class
+com\progra3\treeapp\repository\mongo\MongoNodeRepository.class
+com\progra3\treeapp\config\MongoConfig.class
+com\progra3\treeapp\config\PostgresConfig.class
+com\progra3\treeapp\TreeAppApplication.class
+com\progra3\treeapp\storage\TreeStorageRepository.class
+com\progra3\treeapp\storage\MemoryTreeStorageRepository.class
+com\progra3\treeapp\controller\TreeController.class
+com\progra3\treeapp\repository\postgres\PostgresNodeRepository.class
+com\progra3\treeapp\config\TreeStrategyConfig.class
+com\progra3\treeapp\storage\MongoTreeStorageRepository.class
+com\progra3\treeapp\storage\PostgresTreeStorageRepository.class
+com\progra3\treeapp\model\MongoNodeDocument.class

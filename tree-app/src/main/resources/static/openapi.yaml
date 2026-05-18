@@ -1,58 +1,60 @@
-openapi: 3.0.0
+openapi: 3.0.3
 info:
-  title: API de Gestión de Árbol de Archivos
-  description: Contrato de servicios para el motor de estructuras jerárquicas (Proyecto Final).
+  title: API de Sistema de Archivos Jerárquico - Carpetas y Archivos
+  description: Contrato unificado OpenAPI para la gestión y análisis estructural de árboles de directorios.
   version: 1.0.0
-
 servers:
-  - url: http://localhost:8080
-    description: Servidor local de desarrollo
-
+  - url: http://localhost:8081
 paths:
-  /nodes:
-    get:
-      summary: Listar todos los nodos
-      description: Retorna la estructura jerárquica completa del árbol.
-      responses:
-        '200':
-          description: Lista de nodos obtenida correctamente.
+  /nodes/root:
     post:
-      summary: Crear un nuevo nodo
-      description: Crea una carpeta o archivo bajo un nodo padre.
+      summary: Crear elemento raíz
+      description: Inicializa la raíz del sistema de archivos.
+      operationId: createRoot
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                parentId:
-                  type: string
-                name:
-                  type: string
-                type:
-                  type: string
-                  enum: [FILE, FOLDER]
+              $ref: '#/components/schemas/NodeDTO'
       responses:
         '201':
-          description: Nodo creado con éxito.
+          description: Nodo raíz creado exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NodeDTO'
 
-  /nodes/{id}:
-    get:
-      summary: Buscar nodo por ID
+  /nodes:
+    post:
+      summary: Insertar un archivo o carpeta hijo
+      description: Registra un nuevo elemento bajo un directorio padre referenciado por Query Parameter.
+      operationId: insertNode
       parameters:
-        - name: id
-          in: path
+        - name: parentId
+          in: query
           required: true
           schema:
             type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NodeDTO'
       responses:
-        '200':
-          description: Nodo encontrado.
-        '404':
-          description: El nodo no existe.
+        '201':
+          description: Elemento insertado correctamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NodeDTO'
+
+  /nodes/{id}:
     delete:
-      summary: Eliminar un nodo
+      summary: Eliminar un nodo de forma recursiva
+      description: Borra una carpeta o archivo físico junto a toda su descendencia jerárquica.
+      operationId: deleteNode
       parameters:
         - name: id
           in: path
@@ -61,12 +63,181 @@ paths:
             type: string
       responses:
         '204':
-          description: Nodo eliminado (incluyendo sus hijos).
+          description: Elemento y descendientes eliminados (Sin contenido)
 
-  /nodes/search/dfs:
+  /tree:
     get:
-      summary: Obtener recorrido DFS
-      description: Retorna los nodos ordenados mediante el algoritmo Depth First Search.
+      summary: Obtener el árbol completo
+      description: Retorna la estructura de archivos completa en formato plano.
+      operationId: getTree
       responses:
         '200':
-          description: Recorrido generado.
+          description: Listado lineal del árbol completo
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/NodeDTO'
+
+  /tree/subtree/{id}:
+    get:
+      summary: Obtener un subárbol ramificado
+      description: Recupera la descendencia estructurada a partir de un ID de carpeta específica.
+      operationId: getSubtree
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Listado del subárbol recuperado
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/NodeDTO'
+
+  /tree/path/{id}:
+    get:
+      summary: Resolver la ruta absoluta
+      description: Devuelve el camino ordenado de nodos desde la raíz hasta el elemento consultado.
+      operationId: getPath
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Ruta jerárquica resuelta de manera exitosa
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/NodeDTO'
+
+  /tree/traversal/dfs:
+    get:
+      summary: Recorrido en Profundidad (DFS)
+      description: Devuelve el listado ordenado de elementos procesados bajo la estrategia Depth-First Search.
+      operationId: getDFS
+      responses:
+        '200':
+          description: Recorrido DFS completado
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/NodeDTO'
+
+  /tree/traversal/bfs:
+    get:
+      summary: Recorrido en Anchura (BFS)
+      description: Devuelve el listado ordenado por niveles horizontales bajo la estrategia Breadth-First Search.
+      operationId: getBFS
+      responses:
+        '200':
+          description: Recorrido BFS completado
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/NodeDTO'
+
+  /tree/height:
+    get:
+      summary: Calcular altura máxima
+      description: Provee la profundidad máxima alcanzada en el sistema jerárquico actual.
+      operationId: getHeight
+      responses:
+        '200':
+          description: Altura calculada correctamente
+          content:
+            application/json:
+              schema:
+                type: integer
+
+  /tree/level/{id}:
+    get:
+      summary: Obtener profundidad de un nodo
+      description: Devuelve el nivel numérico exacto en el que reside el nodo respecto a la raíz (Nivel 0).
+      operationId: getLevel
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Distancia del nodo resuelta
+          content:
+            application/json:
+              schema:
+                type: integer
+
+  /tree/ancestors/{id}:
+    get:
+      summary: Listar carpetas ancestros
+      description: Retorna la colección secuencial de carpetas contenedoras padres directas excluyendo el nodo analizado.
+      operationId: getAncestors
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Lista de ancestros obtenida
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/NodeDTO'
+
+  /tree/validate:
+    get:
+      summary: Validación de Ciclos e Integridad
+      description: Verifica el grafo estructural; devuelve true si no posee bucles cerrados (es un árbol válido).
+      operationId: hasCycles
+      responses:
+        '200':
+          description: Evaluación de integridad realizada
+          content:
+            application/json:
+              schema:
+                type: boolean
+
+components:
+  schemas:
+    NodeDTO:
+      type: object
+      required:
+        - id
+        - name
+        - type
+      properties:
+        id:
+          type: string
+          description: Identificador único universal (UUID) del archivo o carpeta.
+        name:
+          type: string
+          description: Nombre descriptivo de la entidad física.
+        type:
+          type: string
+          enum: [FOLDER, FILE]
+          description: Especifica el comportamiento operativo del nodo.
+        parentId:
+          type: string
+          nullable: true
+          description: Referencia al ID del directorio contenedor inmediato.
