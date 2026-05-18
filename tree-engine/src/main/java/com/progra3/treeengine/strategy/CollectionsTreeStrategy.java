@@ -3,119 +3,115 @@ package com.progra3.treeengine.strategy;
 import com.progra3.treeengine.service.TreeAlgorithmStrategy;
 import com.progra3.treeengine.dto.NodeDTO;
 
-import java.util.*;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Queue;
+import java.util.ArrayDeque;
+import java.util.Deque;
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.stereotype.Component;
+
+@Component
+@ConditionalOnProperty(name = "app.tree-strategy", havingValue = "collections")
 public class CollectionsTreeStrategy implements TreeAlgorithmStrategy<NodeDTO> {
 
-    private final Map<String, NodeDTO> nodeMap = new HashMap<>();
-    private final Map<String, List<String>> childrenMap = new HashMap<>();
+    private final List<NodeDTO> nodes = new ArrayList<>();
     private String rootId = null;
 
     @Override
     public void createRoot(NodeDTO data) {
+        nodes.clear();
         this.rootId = data.id();
-        nodeMap.put(data.id(), data);
-        childrenMap.put(data.id(), new ArrayList<>());
+        nodes.add(data);
     }
 
     @Override
     public void insert(String parentId, NodeDTO data) {
-        if (!nodeMap.containsKey(parentId)) {
+        if (findNode(parentId) == null) {
             throw new IllegalArgumentException("El nodo padre con ID " + parentId + " no existe.");
         }
-        nodeMap.put(data.id(), data);
-        childrenMap.putIfAbsent(data.id(), new ArrayList<>());
-        childrenMap.get(parentId).add(data.id());
+        nodes.add(data);
     }
 
     @Override
     public void deleteNode(String id) {
         if (id.equals(rootId)) {
-            nodeMap.clear();
-            childrenMap.clear();
+            nodes.clear();
             rootId = null;
             return;
         }
-        NodeDTO node = nodeMap.get(id);
-        if (node != null && node.parentId() != null) {
-            childrenMap.get(node.parentId()).remove(id);
+        NodeDTO target = findNode(id);
+        if (target != null) {
             removeSubtree(id);
         }
     }
 
     private void removeSubtree(String id) {
-        List<String> children = childrenMap.remove(id);
-        nodeMap.remove(id);
-        if (children != null) {
-            for (String childId : children) {
-                removeSubtree(childId);
-            }
+        List<NodeDTO> children = getChildrenOf(id);
+        for (NodeDTO child : children) {
+            removeSubtree(child.id());
         }
+        nodes.removeIf(node -> node.id().equals(id));
     }
 
     @Override
     public NodeDTO findNode(String id) {
-        return nodeMap.get(id);
+        for (NodeDTO node : nodes) {
+            if (node.id().equals(id)) {
+                return node;
+            }
+        }
+        return null;
+    }
+
+    private List<NodeDTO> getChildrenOf(String parentId) {
+        List<NodeDTO> children = new ArrayList<>();
+        for (NodeDTO node : nodes) {
+            if (parentId.equals(node.parentId())) {
+                children.add(node);
+            }
+        }
+        return children;
     }
 
     @Override
     public List<NodeDTO> getTree() {
         if (rootId == null) return Collections.emptyList();
-        Map<String, List<NodeDTO>> hierarchyMap = new LinkedHashMap<>();
-        for (String id : nodeMap.keySet()) {
-            hierarchyMap.put(id, new ArrayList<>());
-        }
-        Queue<String> queue = new ArrayDeque<>();
-        queue.offer(rootId);
-        while (!queue.isEmpty()) {
-            String currentId = queue.poll();
-            for (String childId : childrenMap.getOrDefault(currentId, Collections.emptyList())) {
-                hierarchyMap.get(currentId).add(nodeMap.get(childId));
-                queue.offer(childId);
-            }
-        }
-        return buildHierarchicalList(rootId, hierarchyMap);
+        List<NodeDTO> result = new ArrayList<>();
+        buildHierarchicalList(rootId, result);
+        return result;
     }
 
-    private List<NodeDTO> buildHierarchicalList(String nodeId, Map<String, List<NodeDTO>> hierarchyMap) {
-        List<NodeDTO> result = new ArrayList<>();
-        NodeDTO current = nodeMap.get(nodeId);
-        if (current == null) return result;
+    private void buildHierarchicalList(String nodeId, List<NodeDTO> result) {
+        NodeDTO current = findNode(nodeId);
+        if (current == null) return;
         result.add(current);
-        for (NodeDTO child : hierarchyMap.getOrDefault(nodeId, Collections.emptyList())) {
-            result.addAll(buildHierarchicalList(child.id(), hierarchyMap));
+        List<NodeDTO> children = getChildrenOf(nodeId);
+        for (NodeDTO child : children) {
+            buildHierarchicalList(child.id(), result);
         }
-        return result;
     }
 
     @Override
     public List<NodeDTO> getSubtree(String nodeId) {
-        if (!nodeMap.containsKey(nodeId)) return Collections.emptyList();
-        Map<String, List<NodeDTO>> hierarchyMap = new LinkedHashMap<>();
-        Queue<String> queue = new ArrayDeque<>();
-        queue.offer(nodeId);
-        while (!queue.isEmpty()) {
-            String currentId = queue.poll();
-            hierarchyMap.putIfAbsent(currentId, new ArrayList<>());
-            for (String childId : childrenMap.getOrDefault(currentId, Collections.emptyList())) {
-                hierarchyMap.get(currentId).add(nodeMap.get(childId));
-                queue.offer(childId);
-            }
-        }
-        return buildHierarchicalList(nodeId, hierarchyMap);
+        if (findNode(nodeId) == null) return Collections.emptyList();
+        List<NodeDTO> result = new ArrayList<>();
+        buildHierarchicalList(nodeId, result);
+        return result;
     }
 
     @Override
     public List<NodeDTO> getPath(String nodeId) {
-        if (!nodeMap.containsKey(nodeId)) return Collections.emptyList();
+        NodeDTO node = findNode(nodeId);
+        if (node == null) return Collections.emptyList();
         Deque<NodeDTO> path = new ArrayDeque<>();
-        String currentId = nodeId;
-        while (currentId != null) {
-            NodeDTO node = nodeMap.get(currentId);
-            if (node == null) break;
-            path.addFirst(node);
-            if (currentId.equals(rootId)) break;
-            currentId = node.parentId();
+        NodeDTO current = node;
+        while (current != null) {
+            path.addFirst(current);
+            if (current.id().equals(rootId)) break;
+            current = findNode(current.parentId());
         }
         return new ArrayList<>(path);
     }
@@ -128,10 +124,10 @@ public class CollectionsTreeStrategy implements TreeAlgorithmStrategy<NodeDTO> {
         stack.push(rootId);
         while (!stack.isEmpty()) {
             String currentId = stack.pop();
-            result.add(nodeMap.get(currentId));
-            List<String> children = childrenMap.getOrDefault(currentId, Collections.emptyList());
+            result.add(findNode(currentId));
+            List<NodeDTO> children = getChildrenOf(currentId);
             for (int i = children.size() - 1; i >= 0; i--) {
-                stack.push(children.get(i));
+                stack.push(children.get(i).id());
             }
         }
         return result;
@@ -145,9 +141,10 @@ public class CollectionsTreeStrategy implements TreeAlgorithmStrategy<NodeDTO> {
         queue.offer(rootId);
         while (!queue.isEmpty()) {
             String currentId = queue.poll();
-            result.add(nodeMap.get(currentId));
-            for (String childId : childrenMap.getOrDefault(currentId, Collections.emptyList())) {
-                queue.offer(childId);
+            result.add(findNode(currentId));
+            List<NodeDTO> children = getChildrenOf(currentId);
+            for (NodeDTO child : children) {
+                queue.offer(child.id());
             }
         }
         return result;
@@ -160,22 +157,22 @@ public class CollectionsTreeStrategy implements TreeAlgorithmStrategy<NodeDTO> {
     }
 
     private int calculateHeight(String id) {
-        List<String> children = childrenMap.getOrDefault(id, Collections.emptyList());
+        List<NodeDTO> children = getChildrenOf(id);
         if (children.isEmpty()) return 0;
         int maxHeight = 0;
-        for (String childId : children) {
-            maxHeight = Math.max(maxHeight, calculateHeight(childId));
+        for (NodeDTO child : children) {
+            maxHeight = Math.max(maxHeight, calculateHeight(child.id()));
         }
         return maxHeight + 1;
     }
 
     @Override
     public int getLevel(String id) {
-        if (!nodeMap.containsKey(id)) return -1;
+        if (findNode(id) == null) return -1;
         int level = 0;
         String currentId = id;
         while (currentId != null && !currentId.equals(rootId)) {
-            NodeDTO node = nodeMap.get(currentId);
+            NodeDTO node = findNode(currentId);
             if (node == null || node.parentId() == null) break;
             currentId = node.parentId();
             level++;
@@ -185,11 +182,12 @@ public class CollectionsTreeStrategy implements TreeAlgorithmStrategy<NodeDTO> {
 
     @Override
     public List<NodeDTO> getAncestors(String nodeId) {
-        if (!nodeMap.containsKey(nodeId)) return Collections.emptyList();
+        NodeDTO target = findNode(nodeId);
+        if (target == null) return Collections.emptyList();
         Deque<NodeDTO> ancestors = new ArrayDeque<>();
-        String currentId = nodeMap.get(nodeId).parentId();
+        String currentId = target.parentId();
         while (currentId != null) {
-            NodeDTO node = nodeMap.get(currentId);
+            NodeDTO node = findNode(currentId);
             if (node == null) break;
             ancestors.addFirst(node);
             if (currentId.equals(rootId)) break;
@@ -200,19 +198,22 @@ public class CollectionsTreeStrategy implements TreeAlgorithmStrategy<NodeDTO> {
 
     @Override
     public boolean hasCycles() {
-        Set<String> visited = new HashSet<>();
-        Set<String> recursionStack = new HashSet<>();
+        List<String> visited = new ArrayList<>();
+        List<String> recursionStack = new ArrayList<>();
         return checkCycleDFS(rootId, visited, recursionStack);
     }
 
-    private boolean checkCycleDFS(String current, Set<String> visited, Set<String> recursionStack) {
+    private boolean checkCycleDFS(String current, List<String> visited, List<String> recursionStack) {
         if (current == null) return false;
         if (recursionStack.contains(current)) return true;
         if (visited.contains(current)) return false;
+        
         visited.add(current);
         recursionStack.add(current);
-        for (String child : childrenMap.getOrDefault(current, Collections.emptyList())) {
-            if (checkCycleDFS(child, visited, recursionStack)) return true;
+        
+        List<NodeDTO> children = getChildrenOf(current);
+        for (NodeDTO child : children) {
+            if (checkCycleDFS(child.id(), visited, recursionStack)) return true;
         }
         recursionStack.remove(current);
         return false;
@@ -221,9 +222,9 @@ public class CollectionsTreeStrategy implements TreeAlgorithmStrategy<NodeDTO> {
     @Override
     public List<NodeDTO> getLeaves() {
         List<NodeDTO> leaves = new ArrayList<>();
-        for (Map.Entry<String, List<String>> entry : childrenMap.entrySet()) {
-            if (entry.getValue().isEmpty() && nodeMap.containsKey(entry.getKey())) {
-                leaves.add(nodeMap.get(entry.getKey()));
+        for (NodeDTO node : nodes) {
+            if (getChildrenOf(node.id()).isEmpty()) {
+                leaves.add(node);
             }
         }
         return leaves;
