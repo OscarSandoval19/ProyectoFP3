@@ -70,6 +70,17 @@ public ResponseEntity<Integer> getHeight() {
 public ResponseEntity<Integer> getLevel(@PathVariable String id) {
     return ResponseEntity.ok(treeStrategy.level(id));
 }
+@GetMapping("/tree/ancestors/{id}")
+public ResponseEntity<List<NodeDTO>> getAncestors(@PathVariable String id) {
+    return ResponseEntity.ok(treeStrategy.getAncestors(id));
+}
+
+
+@GetMapping("/tree/validate")
+public ResponseEntity<Boolean> validateTree() {
+ 
+    return ResponseEntity.ok(treeStrategy.hasCycles());
+}
 
 
 }
