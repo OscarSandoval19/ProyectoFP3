@@ -60,6 +60,16 @@ public ResponseEntity<List<NodeDTO>> getDFS() {
 public ResponseEntity<List<NodeDTO>> getBFS() {
     return ResponseEntity.ok(treeStrategy.bfs());
 }
+@GetMapping("/tree/height")
+public ResponseEntity<Integer> getHeight() {
+    return ResponseEntity.ok(treeStrategy.height());
+}
+
+
+@GetMapping("/tree/level/{id}")
+public ResponseEntity<Integer> getLevel(@PathVariable String id) {
+    return ResponseEntity.ok(treeStrategy.level(id));
+}
 
 
 }
