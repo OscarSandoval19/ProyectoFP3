@@ -49,6 +49,17 @@ public ResponseEntity<List<NodeDTO>> getSubtree(@PathVariable String id) {
 public ResponseEntity<List<NodeDTO>> getPath(@PathVariable String id) {
     return ResponseEntity.ok(treeStrategy.getPath(id));
 }
+@GetMapping("/tree/traversal/dfs")
+public ResponseEntity<List<NodeDTO>> getDFS() {
+    return ResponseEntity.ok(treeStrategy.dfs());
+}
+
+
+
+@GetMapping("/tree/traversal/bfs")
+public ResponseEntity<List<NodeDTO>> getBFS() {
+    return ResponseEntity.ok(treeStrategy.bfs());
+}
 
 
 }
