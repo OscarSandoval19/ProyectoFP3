@@ -67,7 +67,6 @@ public class TreeController {
    
     @GetMapping("/nodes/{nodeId}/depth")
     public ResponseEntity<Integer> getDepth(@PathVariable("nodeId") String nodeId) {
-        // Ejecuta de forma correcta el método getLevel de tu interfaz bajo la ruta exigida
         return ResponseEntity.ok(treeStrategy.getLevel(nodeId));
     }
 
