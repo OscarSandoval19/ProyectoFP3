@@ -12,6 +12,7 @@ import java.util.List;
 @RestController
 @RequestMapping
 public class TreeController {
+ private final TreeAlgorithmStrategy<NodeDTO> treeStrategy;
 
     @Autowired
     private TreeAlgorithmStrategy<NodeDTO> treeStrategy;
