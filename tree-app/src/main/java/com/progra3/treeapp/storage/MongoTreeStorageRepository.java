@@ -4,6 +4,7 @@ import com.progra3.treeapp.model.MongoNodeDocument;
 import com.progra3.treeapp.repository.mongo.MongoNodeRepository;
 import com.progra3.treeengine.dto.NodeDTO;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
