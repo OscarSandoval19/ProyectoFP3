@@ -19,3 +19,23 @@ El proyecto consiste en construir un Sistema de Gestión Jerárquica diseñado e
 ​La Experiencia: Muestra un formulario para crear nuevos nodos introduciendo un nombre, seleccionando si es una CARPETA (Folder) o un ARCHIVO (File), y eligiendo cuál será su carpeta contenedora (Padre).
 ​Renderizado: Dibuja de manera visual y recursiva el árbol en la pantalla, aplicando sangrías o indentaciones para que el usuario distinga claramente qué archivos están metidos dentro de qué carpetas.
 ​Borrado Seguro: Si el usuario presiona el botón de eliminar en una carpeta, la interfaz avisa al backend para que este aplique un borrado en cascada, eliminando esa carpeta y absolutamente todos los archivos y subcarpetas que contenía en su interior.
+
+
+## Detalle Técnico: Implementación del Motor Jerárquico Personalizado (Custom)
+
+### 1. La Estructura del Nodo (`CustomTreeNode<T>`)
+Es la entidad fundamental que representa cada carpeta o archivo en la memoria del servidor. Se diseñó utilizando tipos genéricos y contiene tres atributos clave:
+* **`NodeDTO content`**: Almacena la información pura del nodo (ID, nombre, tipo).
+* **`CustomTreeNode<T> parent`**: Un puntero directo hacia su nodo padre. Esto facilita la navegación ascendente inmediata (por ejemplo, para reconstruir la ruta de una carpeta hacia la raíz).
+* **`Map<String, CustomTreeNode<T>> children`**: Un mapa dinámico enlazado que almacena a los hijos directos. Se optó por un mapa en lugar de una lista indexada para permitir búsquedas y accesos a descendientes directos en un tiempo constante de complejidad **O(1)**.
+
+### 2. La Estrategia de Gestión (`CustomTreeStrategy`)
+Es la clase que implementa la interfaz `TreeAlgorithmStrategy` y gobierna el ciclo de vida de todo el árbol en memoria:
+* **Referencia Raíz (`root`)**: Mantiene el punto de partida del árbol.
+* **Índice Global de Búsqueda (`Map<String, CustomTreeNode<T>> index`)**: El motor mantiene un mapa que registra absolutamente todos los nodos cargados en memoria indexados por su ID. 
+  * *Impacto en rendimiento:* Cuando el orquestador solicita añadir un hijo o realizar una validación, el motor no necesita recorrer todo el árbol buscando al padre; lo localiza instantáneamente en el índice global en **O(1)** y cuelga el nuevo nodo de forma eficiente.
+
+### 3. Ejecución de Algoritmos sobre la Estructura Custom
+Al no usar estructuras nativas de Java tradicionales para las ramas, los algoritmos de recorrido se adaptaron para trabajar directamente sobre los punteros de nuestra clase:
+* **DFS (Depth-First Search):** Explora de manera recursiva la estructura del mapa `children`, adentrándose en el nivel más profundo de cada carpeta antes de saltar a la carpeta hermana. Es el utilizado para el borrado en cascada en memoria.
+* **BFS (Breadth-First Search):** Utiliza una estructura de cola auxiliar para procesar el árbol de manera horizontal, nivel por nivel, garantizando un indexado limpio.
