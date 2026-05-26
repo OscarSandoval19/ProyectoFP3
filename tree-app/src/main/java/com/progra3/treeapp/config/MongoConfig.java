@@ -14,8 +14,8 @@ import org.springframework.data.mongodb.repository.config.EnableMongoRepositorie
 @EnableMongoRepositories(basePackages = "com.progra3.treeapp.repository.mongo")
 public class MongoConfig {
 
-    @Value("${spring.data.mongodb.uri}")
-    private String mongoUri;
+	@Value("${spring.data.mongodb.uri:mongodb://localhost:27017/tree_db}")
+	private String mongoUri;
 
     @Bean
     public MongoClient mongoClient() {
