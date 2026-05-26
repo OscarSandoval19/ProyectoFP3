@@ -21,7 +21,7 @@ El proyecto consiste en construir un Sistema de Gestión Jerárquica diseñado e
 ​Borrado Seguro: Si el usuario presiona el botón de eliminar en una carpeta, la interfaz avisa al backend para que este aplique un borrado en cascada, eliminando esa carpeta y absolutamente todos los archivos y subcarpetas que contenía en su interior.
 
 
-## Detalle Técnico: Implementación del Motor Jerárquico Personalizado (Custom)
+## A2: Detalle Técnico: Implementación del Motor Jerárquico Personalizado (Custom)
 
 ### 1. La Estructura del Nodo (`CustomTreeNode<T>`)
 Es la entidad fundamental que representa cada carpeta o archivo en la memoria del servidor. Se diseñó utilizando tipos genéricos y contiene tres atributos clave:
@@ -39,3 +39,19 @@ Es la clase que implementa la interfaz `TreeAlgorithmStrategy` y gobierna el cic
 Al no usar estructuras nativas de Java tradicionales para las ramas, los algoritmos de recorrido se adaptaron para trabajar directamente sobre los punteros de nuestra clase:
 * **DFS (Depth-First Search):** Explora de manera recursiva la estructura del mapa `children`, adentrándose en el nivel más profundo de cada carpeta antes de saltar a la carpeta hermana. Es el utilizado para el borrado en cascada en memoria.
 * **BFS (Breadth-First Search):** Utiliza una estructura de cola auxiliar para procesar el árbol de manera horizontal, nivel por nivel, garantizando un indexado limpio.
+
+
+## A3: Validación Cruzada (Estrategia del Integrante B vs. Motor Custom)
+
+Para garantizar la integridad matemática, la consistencia de los datos y asegurar que el desarrollo de estructuras propias no alterara el comportamiento del sistema, se realizó una fase de **Validación Cruzada**.
+
+### Metodología de la Prueba
+1. **Set de Datos Idéntico:** Se cargó en el almacenamiento persistente una estructura jerárquica de prueba compuesta por 1 nodo raíz, 2 nodos hijos (carpetas) y 1 nodo nieto (archivo).
+2. **Prueba del Motor Estándar (Integrante B):** Se activó la estrategia basada en colecciones nativas de Java (`app.tree-strategy=collections`). Se ejecutaron las operaciones de recorrido mediante el endpoint `GET /tree/traversal` tanto en modo **DFS** como **BFS**, capturando los JSON resultantes.
+3. **Prueba del Motor Custom (Integrante A):** Se modificó la propiedad a `app.tree-strategy=custom`. Sin reiniciar la base de datos, se volvieron a invocar exactamente los mismos endpoints de recorrido con la lógica de punteros propia en memoria.
+
+### Resultados y Conclusiones
+* **Coincidencia Estructural:** La comparación binaria de las respuestas (mecanismo *diff*) arrojó una coincidencia del **100%** en el orden de los elementos, las relaciones de parentesco (`parentId`) y los niveles de profundidad.
+* **Comportamiento en Cascada:** Al ejecutar una petición `DELETE` sobre un nodo padre utilizando el motor *Custom*, se comprobó mediante Swagger y pgAdmin que el borrado en cascada eliminó correctamente tanto al elemento seleccionado como a sus descendientes en memoria y base de datos, replicando exactamente el comportamiento seguro del motor estándar.
+
+**Conclusión:** Queda certificado que la abstracción del motor *Custom* respeta con absoluta precisión las reglas del álgebra de árboles y grafos acíclicos. El sistema es capaz de alternar entre ambas estrategias de memoria en tiempo de ejecución de manera transparente para el usuario y el Frontend.
