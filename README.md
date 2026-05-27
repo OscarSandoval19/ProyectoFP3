@@ -77,3 +77,256 @@ Uno de los mayores retos en la teoría de grafos es el desbordamiento de pila (*
 Para cumplir con las 11 operaciones obligatorias del motor, se desarrollaron algoritmos específicos para la validación y rastreo de rutas:
 * **Reconstrucción de Rutas (`getAncestors` / `getPath`):** Se utilizó la interfaz `Deque` nativa. A medida que el algoritmo salta desde el archivo hijo hacia su padre, utiliza el método `addFirst()` para insertar cada ancestro en la parte superior de la cola. Esto garantiza que la ruta resultante se devuelva matemáticamente ordenada desde la Carpeta Raíz hasta el Archivo final.
 * **Detección de Ciclos (`hasCycles`):** Es el mecanismo de defensa crítico del motor. Para evitar la paradoja de que "una carpeta se mueva al interior de sí misma", se implementó un algoritmo DFS híbrido con *Backtracking*. Utiliza una lista `visited` para rastrear las colisiones y una lista `recursionStack` que se limpia (`remove`) al retroceder, garantizando que el sistema rechace cualquier mutación que genere un bucle cerrado, protegiendo así la integridad matemática del sistema y de la base de datos relacional.
+
+
+## C1: Documentación de integración: configuración de estrategia y almacenamiento
+
+La integración del proyecto permite cambiar la forma en que trabaja el sistema sin modificar directamente el código fuente. Para esto se utilizan propiedades configurables en Spring Boot, principalmente dentro del archivo:
+
+```txt
+tree-app/src/main/resources/application.properties
+```
+
+También existe un archivo específico para MongoDB:
+
+```txt
+tree-app/src/main/resources/application-mongo.properties
+```
+
+Las propiedades más importantes son:
+
+```properties
+app.tree-strategy
+app.storage
+```
+
+Estas propiedades permiten separar la lógica del árbol, el almacenamiento y la interfaz web, haciendo que el proyecto sea más flexible y fácil de probar.
+
+### 1. Configuración de la estrategia del árbol (`app.tree-strategy`)
+
+La propiedad `app.tree-strategy` define qué implementación del motor jerárquico será utilizada para procesar los nodos, recorridos y validaciones del árbol.
+
+Ejemplo:
+
+```properties
+app.tree-strategy=custom
+```
+
+Con esta configuración se utiliza el motor personalizado, basado en nodos enlazados, referencias al nodo padre, mapa de hijos e índice global de búsqueda. Esta estrategia representa la jerarquía de forma directa dentro de la memoria.
+
+También puede configurarse así:
+
+```properties
+app.tree-strategy=collections
+```
+
+Con esta opción se utiliza la estrategia basada en colecciones nativas de Java, como `ArrayList` y `ArrayDeque`, para ejecutar recorridos y validaciones de forma iterativa.
+
+| Valor | Descripción |
+|---|---|
+| `custom` | Usa la implementación personalizada del árbol. |
+| `collections` | Usa la implementación basada en colecciones nativas de Java. |
+
+El beneficio de esta configuración es que permite comparar ambas estrategias sin cambiar los controladores, servicios ni endpoints. Solo se modifica la propiedad, se reinicia la aplicación y el backend trabaja con la estrategia seleccionada.
+
+Para ejecutar nuevamente el proyecto se puede usar:
+
+```bash
+mvn spring-boot:run
+```
+
+### 2. Configuración del almacenamiento (`app.storage`)
+
+La propiedad `app.storage` define dónde se guardarán los datos del sistema.
+
+Ejemplo:
+
+```properties
+app.storage=memory
+```
+
+| Valor | Tipo de almacenamiento | Descripción |
+|---|---|---|
+| `memory` | Memoria temporal | Guarda los datos mientras la aplicación está encendida. Al reiniciar, la información se pierde. |
+| `postgres` | Base de datos relacional | Guarda los datos en PostgreSQL usando tablas y relaciones. |
+| `mongo` | Base de datos documental | Guarda los datos en MongoDB usando colecciones y documentos. |
+
+### 3. Uso con almacenamiento en memoria
+
+Para usar memoria temporal:
+
+```properties
+app.storage=memory
+```
+
+Este modo es útil para pruebas rápidas, ya que no requiere configurar una base de datos externa. La desventaja es que los datos se pierden al detener o reiniciar la aplicación.
+
+### 4. Uso con PostgreSQL
+
+Para usar PostgreSQL:
+
+```properties
+app.storage=postgres
+```
+
+También se deben configurar las propiedades de conexión en `application.properties`:
+
+```properties
+spring.datasource.url=jdbc:postgresql://localhost:5432/progra3db
+spring.datasource.username=progra3
+spring.datasource.password=progra3
+spring.datasource.driver-class-name=org.postgresql.Driver
+```
+
+PostgreSQL permite guardar los nodos de forma permanente en una base de datos relacional. Además, el proyecto puede utilizar los archivos `schema.sql` y `data.sql` para crear tablas y cargar datos iniciales.
+
+Si se trabaja con Docker, se puede levantar el servicio con:
+
+```bash
+docker compose up -d
+```
+
+### 5. Uso con MongoDB
+
+Para usar MongoDB se utiliza el archivo:
+
+```txt
+tree-app/src/main/resources/application-mongo.properties
+```
+
+Ejemplo de configuración:
+
+```properties
+app.storage=mongo
+spring.data.mongodb.uri=mongodb://localhost:27017/tree_db
+```
+
+MongoDB permite guardar los datos en documentos, lo cual puede ser útil para estructuras jerárquicas más flexibles.
+
+Para ejecutar la aplicación usando el perfil de MongoDB:
+
+```bash
+mvn spring-boot:run -Dspring-boot.run.profiles=mongo
+```
+
+### 6. Combinaciones posibles
+
+| Estrategia | Almacenamiento | Uso recomendado |
+|---|---|---|
+| `custom` | `memory` | Probar rápidamente el motor personalizado. |
+| `collections` | `memory` | Comparar el comportamiento usando colecciones Java. |
+| `custom` | `postgres` | Usar el motor personalizado con persistencia relacional. |
+| `collections` | `postgres` | Probar colecciones Java con PostgreSQL. |
+| `custom` | `mongo` | Usar el motor personalizado con almacenamiento documental. |
+| `collections` | `mongo` | Probar colecciones Java con MongoDB. |
+
+En general, esta configuración demuestra que el proyecto tiene una arquitectura desacoplada, porque puede cambiar la estrategia interna del árbol y el almacenamiento sin afectar directamente al frontend.
+
+---
+
+## C2: Documentación del Frontend, OpenAPI y conexión con el Backend
+
+El frontend del proyecto se encuentra dentro del módulo `tree-app`, específicamente en la carpeta:
+
+```txt
+tree-app/src/main/resources/static
+```
+
+Al estar dentro de `resources/static`, Spring Boot puede servir estos archivos directamente al navegador cuando la aplicación está en ejecución.
+
+### 1. Archivos principales del Frontend
+
+| Archivo | Función |
+|---|---|
+| `index.html` | Define la estructura visual de la página y los formularios. |
+| `styles.css` | Controla el diseño, colores y presentación visual. |
+| `app.js` | Contiene la lógica para conectarse con el backend. |
+| `openapi.yaml` | Documenta los endpoints disponibles de la API. |
+
+Cada archivo cumple una función específica: `index.html` estructura la página, `styles.css` mejora la apariencia y `app.js` realiza las peticiones al backend.
+
+### 2. Relación con OpenAPI
+
+El archivo `openapi.yaml` funciona como contrato de comunicación entre el frontend y el backend. En él se documentan las rutas disponibles, los métodos HTTP, los parámetros esperados y las respuestas de la API.
+
+Algunos endpoints importantes son:
+
+| Endpoint | Método | Función |
+|---|---|---|
+| `/nodes/root` | `POST` | Crear el nodo raíz del árbol. |
+| `/nodes/{id}` | `GET` | Buscar un nodo por su identificador. |
+| `/nodes/{id}` | `DELETE` | Eliminar un nodo. |
+| `/tree` | `GET` | Obtener la estructura completa del árbol. |
+| `/tree/height` | `GET` | Calcular la altura del árbol. |
+| `/tree/validate` | `GET` | Validar que el árbol no tenga errores. |
+| `/tree/traversal` | `GET` | Ejecutar recorridos DFS o BFS. |
+
+OpenAPI es importante porque ayuda a que el frontend consuma correctamente las rutas del backend y evita errores de conexión entre ambas partes.
+
+### 3. Conexión del Frontend con el Backend
+
+La conexión entre el frontend y el backend se realiza mediante JavaScript usando `fetch`.
+
+El archivo `app.js` captura los datos ingresados por el usuario, construye la petición HTTP correspondiente, la envía al backend y muestra la respuesta en pantalla.
+
+Cuando la aplicación está corriendo, el frontend puede abrirse desde el navegador usando una dirección como:
+
+```txt
+http://localhost:8080/index.html
+```
+
+o dependiendo del puerto configurado:
+
+```txt
+http://localhost:8081/index.html
+```
+
+Como el frontend está dentro del mismo proyecto Spring Boot, puede comunicarse con el backend usando rutas relativas, sin necesidad de escribir la URL completa en cada petición.
+
+### 4. Flujo general de funcionamiento
+
+El flujo de comunicación funciona así:
+
+1. El usuario realiza una acción en la página web.
+2. El frontend obtiene los datos del formulario.
+3. `app.js` envía una petición HTTP usando `fetch`.
+4. El backend recibe la solicitud en un controlador.
+5. El servicio procesa la operación usando `tree-app`.
+6. El motor lógico de `tree-engine` ejecuta la operación del árbol.
+7. Si es necesario, se consulta o modifica el almacenamiento configurado.
+8. El backend devuelve una respuesta.
+9. El frontend muestra el resultado al usuario.
+
+### 5. Operaciones disponibles desde la interfaz
+
+Desde el frontend, el usuario puede realizar operaciones como:
+
+| Operación | Descripción |
+|---|---|
+| Crear raíz | Crea el nodo principal del árbol. |
+| Agregar hijo | Agrega carpetas o archivos dentro de un nodo padre. |
+| Buscar nodo | Localiza un nodo usando su identificador. |
+| Eliminar nodo | Borra un nodo y sus descendientes. |
+| Ver árbol | Muestra la estructura jerárquica completa. |
+| Calcular altura | Obtiene la profundidad máxima del árbol. |
+| Validar árbol | Comprueba que no existan ciclos o errores. |
+| Recorrido DFS | Recorre el árbol en profundidad. |
+| Recorrido BFS | Recorre el árbol por niveles. |
+
+### 6. Ejemplo de funcionamiento
+
+Si el usuario quiere crear un nodo raíz:
+
+1. Escribe el nombre del nodo en la interfaz.
+2. Presiona el botón correspondiente.
+3. `app.js` envía una petición `POST` a `/nodes/root`.
+4. El backend recibe la solicitud.
+5. El motor lógico crea la raíz del árbol.
+6. El backend devuelve la respuesta.
+7. El frontend muestra el resultado en pantalla.
+
+### 7. Recomendación final
+
+Antes de entregar el proyecto, se recomienda verificar que las rutas usadas en `app.js` coincidan con las rutas documentadas en `openapi.yaml` y con los controladores reales del backend.
+
+Esto asegura que el frontend, la documentación OpenAPI y el backend trabajen correctamente en conjunto.
