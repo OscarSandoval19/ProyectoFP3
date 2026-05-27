@@ -55,3 +55,25 @@ Para garantizar la integridad matemática, la consistencia de los datos y asegur
 * **Comportamiento en Cascada:** Al ejecutar una petición `DELETE` sobre un nodo padre utilizando el motor *Custom*, se comprobó mediante Swagger y pgAdmin que el borrado en cascada eliminó correctamente tanto al elemento seleccionado como a sus descendientes en memoria y base de datos, replicando exactamente el comportamiento seguro del motor estándar.
 
 **Conclusión:** Queda certificado que la abstracción del motor *Custom* respeta con absoluta precisión las reglas del álgebra de árboles y grafos acíclicos. El sistema es capaz de alternar entre ambas estrategias de memoria en tiempo de ejecución de manera transparente para el usuario y el Frontend.
+
+### A1: Detalle Técnico: Implementación del Motor Basado en Colecciones (Integrante B)
+
+La estrategia `CollectionsTreeStrategy` se desarrolló bajo la premisa de aprovechar al máximo las implementaciones nativas e iterativas del Java Development Kit (JDK), priorizando la estabilidad y el manejo seguro de la memoria en árboles de alta densidad o profundidad extrema.
+
+**1. Almacenamiento Dinámico (Listas Planas)**
+
+A diferencia de los modelos basados en punteros anidados, este motor almacena el estado del árbol en memoria utilizando una estructura intencionalmente aplanada:
+* **`ArrayList<NodeDTO> nodes`**: Un vector dinámico estándar que contiene todos los nodos del sistema de manera contigua en memoria.
+* **Ventaja Arquitectónica:** Al mantener una lista plana, se evita la fragmentación de la memoria en el "Heap" de Java. Las relaciones jerárquicas no se almacenan como variables físicas dentro de cada objeto, sino que se calculan al vuelo en tiempo de ejecución utilizando el `parentId` de los DTOs, lo que mantiene el consumo de RAM extremadamente bajo y estable.
+
+**2. Ejecución de Algoritmos Seguros (Evitando el StackOverflow)**
+
+Uno de los mayores retos en la teoría de grafos es el desbordamiento de pila (*StackOverflowError*) cuando se procesan árboles excesivamente profundos mediante recursividad pura. Este motor resuelve ese problema delegando los recorridos a estructuras de almacenamiento temporal iterativas:
+* **DFS (Depth-First Search) Iterativo:** Se sustituyó la llamada recursiva del sistema por una estructura **Pila (Stack)** explícita utilizando `ArrayDeque<String>`. Al usar los métodos `push()` y `pop()`, el motor desciende hasta las hojas más lejanas almacenando las referencias en la memoria principal (Heap) en lugar de la pila de ejecución, garantizando que el sistema jamás colapse por la profundidad del árbol de carpetas.
+* **BFS (Breadth-First Search):** Se implementó mediante el patrón de **Cola (Queue)**, nuevamente utilizando `ArrayDeque<String>` pero operando con los métodos `offer()` y `poll()`. Esto permite barrer la jerarquía de archivos nivel por nivel, de izquierda a derecha.
+
+**3. Trazabilidad Jerárquica y Detección de Colisiones**
+
+Para cumplir con las 11 operaciones obligatorias del motor, se desarrollaron algoritmos específicos para la validación y rastreo de rutas:
+* **Reconstrucción de Rutas (`getAncestors` / `getPath`):** Se utilizó la interfaz `Deque` nativa. A medida que el algoritmo salta desde el archivo hijo hacia su padre, utiliza el método `addFirst()` para insertar cada ancestro en la parte superior de la cola. Esto garantiza que la ruta resultante se devuelva matemáticamente ordenada desde la Carpeta Raíz hasta el Archivo final.
+* **Detección de Ciclos (`hasCycles`):** Es el mecanismo de defensa crítico del motor. Para evitar la paradoja de que "una carpeta se mueva al interior de sí misma", se implementó un algoritmo DFS híbrido con *Backtracking*. Utiliza una lista `visited` para rastrear las colisiones y una lista `recursionStack` que se limpia (`remove`) al retroceder, garantizando que el sistema rechace cualquier mutación que genere un bucle cerrado, protegiendo así la integridad matemática del sistema y de la base de datos relacional.
