@@ -8,9 +8,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-@CrossOrigin(origins = "*")
+import java.util.Map;
+@CrossOrigin(origins = "http://localhost:8080", allowedHeaders = "*", methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE})
 @RestController
-@RequestMapping
+@RequestMapping("/api/tree")
 public class TreeController {
 
     @Autowired
@@ -68,6 +69,7 @@ public class TreeController {
     public ResponseEntity<Boolean> validateTree() {
         return ResponseEntity.ok(treeService.hasCycles());
     }
+
 
     @DeleteMapping("/nodes/{id}")
     public ResponseEntity<Void> deleteNode(@PathVariable("id") String id) {

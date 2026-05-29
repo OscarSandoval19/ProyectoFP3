@@ -10,6 +10,9 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 @Profile("postgres")
+@org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(
+	    name = "app.storage", havingValue = "postgres"
+	)
 public interface PostgresNodeRepository extends JpaRepository<NodeEntity, String> {
 	 List<NodeEntity> findByParentId(String parentId);
     // Hereda todos los métodos de persistencia (save, find, delete)

@@ -10,6 +10,9 @@ import java.util.List;
 @ComponentScan
 @Repository
 @Profile("mongo")
+@org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(
+	    name = "app.storage", havingValue = "mongo"
+	)
 public interface MongoNodeRepository extends MongoRepository<MongoNodeDocument, String> {
     List<MongoNodeDocument> findByParentId(String parentId);
 }

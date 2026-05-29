@@ -13,46 +13,62 @@ import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 @Service
 public class TreeOrchestratorService {
 
-    @Autowired(required = false)
-    private PostgresNodeRepository PostgresNodeRepository;
-
-    @Autowired(required = false)
-    private MongoNodeRepository mongoRepository;
-
-    @Autowired
+    // 1. Declaramos las variables globales como finales (Inyección por constructor recomendada)
+    private final PostgresNodeRepository postgresRepository;
+    private final MongoNodeRepository mongoRepository;
     private final TreeAlgorithmStrategy<NodeDTO> strategy;
     private final TreeStorageRepository storage;
 
-    public TreeOrchestratorService(TreeAlgorithmStrategy<NodeDTO> strategy,
-                                   TreeStorageRepository storage) {
+    // 2. Modificamos el constructor único usando @Autowired(required = false) en los parámetros
+    @Autowired
+    public TreeOrchestratorService(
+            @Autowired(required = false) PostgresNodeRepository postgresRepository,
+            @Autowired(required = false) MongoNodeRepository mongoRepository,
+            TreeAlgorithmStrategy<NodeDTO> strategy,
+            TreeStorageRepository storage) {
+        this.postgresRepository = postgresRepository;
+        this.mongoRepository = mongoRepository;
         this.strategy = strategy;
         this.storage = storage;
     }
 
     public NodeDTO createRoot(NodeDTO nodeDTO) {
+        String idAleatorio = UUID.randomUUID().toString().substring(0, 8);
      
-        if (PostgresNodeRepository != null) {
-            NodeEntity entity = new NodeEntity(nodeDTO.id(), nodeDTO.name(), nodeDTO.type(), nodeDTO.parentId());
-            PostgresNodeRepository.save(entity);
+        NodeDTO nodoConIdAleatorio = new NodeDTO(
+            idAleatorio, 
+            nodeDTO.name(), 
+            nodeDTO.type(), 
+            nodeDTO.parentId()
+        );
+
+        // Ajustado con el nombre de la variable en minúsculas
+        if (postgresRepository != null) {
+            NodeEntity entity = new NodeEntity(nodoConIdAleatorio.id(), nodoConIdAleatorio.name(), nodoConIdAleatorio.type(), nodoConIdAleatorio.parentId());
+            postgresRepository.save(entity);
         } else if (mongoRepository != null) {
-            MongoNodeDocument doc = new MongoNodeDocument(nodeDTO.id(), nodeDTO.name(), nodeDTO.type(), nodeDTO.parentId());
+            MongoNodeDocument doc = new MongoNodeDocument(nodoConIdAleatorio.id(), nodoConIdAleatorio.name(), nodoConIdAleatorio.type(), nodoConIdAleatorio.parentId());
             mongoRepository.save(doc);
         }
 
-        
-        if (nodeDTO.parentId() == null || nodeDTO.parentId().equals("null") || nodeDTO.parentId().trim().isEmpty()) {
-            strategy.createRoot(nodeDTO);
+        if (nodoConIdAleatorio.parentId() == null || nodoConIdAleatorio.parentId().equals("null") || nodoConIdAleatorio.parentId().trim().isEmpty()) {
+            strategy.createRoot(nodoConIdAleatorio);
         } else {
-            strategy.insert(nodeDTO.parentId(), nodeDTO);
+            strategy.insert(nodoConIdAleatorio.parentId(), nodoConIdAleatorio);
         }
         
         this.loadFromStorage();
-        return nodeDTO;
+        
+        return nodoConIdAleatorio;
     }
 
     @PostConstruct
@@ -61,7 +77,6 @@ public class TreeOrchestratorService {
     }
 
     private void loadFromStorage() {
-      
         if (mongoRepository != null) {
             List<MongoNodeDocument> allNodes = mongoRepository.findAll();
           
@@ -81,9 +96,9 @@ public class TreeOrchestratorService {
                 loadAllChildrenRecursivelyMongo(root.id(), allNodes);
             }
         } 
-     
-        else if (PostgresNodeRepository != null) {
-            List<NodeEntity> allEntities = PostgresNodeRepository.findAll();
+        // Ajustado con el nombre de la variable en minúsculas
+        else if (postgresRepository != null) {
+            List<NodeEntity> allEntities = postgresRepository.findAll();
             System.out.println(">>> [POSTGRES] Total de filas leídas de la base de datos: " + allEntities.size());
             List<NodeDTO> roots = allEntities.stream()
                 .filter(e -> e.getParentId() == null 
@@ -121,7 +136,6 @@ public class TreeOrchestratorService {
         }
     }
 
-   
     private void loadAllChildrenRecursivelyPostgres(String parentId, List<NodeEntity> allEntities) {
         List<NodeEntity> children = allEntities.stream()
             .filter(e -> parentId.equals(e.getParentId()))
@@ -141,9 +155,10 @@ public class TreeOrchestratorService {
     }
 
     public NodeDTO addChild(String parentId, NodeDTO nodeDTO) {
-        if (PostgresNodeRepository != null) {
+        // Ajustado con el nombre de la variable en minúsculas
+        if (postgresRepository != null) {
             NodeEntity entity = new NodeEntity(nodeDTO.id(), nodeDTO.name(), nodeDTO.type(), parentId);
-            PostgresNodeRepository.save(entity);
+            postgresRepository.save(entity);
         } else if (mongoRepository != null) {
             MongoNodeDocument doc = new MongoNodeDocument(nodeDTO.id(), nodeDTO.name(), nodeDTO.type(), parentId);
             mongoRepository.save(doc);
