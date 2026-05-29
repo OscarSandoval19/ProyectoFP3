@@ -22,13 +22,11 @@ import java.util.UUID;
 @Service
 public class TreeOrchestratorService {
 
-    // 1. Declaramos las variables globales como finales (Inyección por constructor recomendada)
     private final PostgresNodeRepository postgresRepository;
     private final MongoNodeRepository mongoRepository;
     private final TreeAlgorithmStrategy<NodeDTO> strategy;
     private final TreeStorageRepository storage;
 
-    // 2. Modificamos el constructor único usando @Autowired(required = false) en los parámetros
     @Autowired
     public TreeOrchestratorService(
             @Autowired(required = false) PostgresNodeRepository postgresRepository,
@@ -51,7 +49,6 @@ public class TreeOrchestratorService {
             nodeDTO.parentId()
         );
 
-        // Ajustado con el nombre de la variable en minúsculas
         if (postgresRepository != null) {
             NodeEntity entity = new NodeEntity(nodoConIdAleatorio.id(), nodoConIdAleatorio.name(), nodoConIdAleatorio.type(), nodoConIdAleatorio.parentId());
             postgresRepository.save(entity);
@@ -96,7 +93,6 @@ public class TreeOrchestratorService {
                 loadAllChildrenRecursivelyMongo(root.id(), allNodes);
             }
         } 
-        // Ajustado con el nombre de la variable en minúsculas
         else if (postgresRepository != null) {
             List<NodeEntity> allEntities = postgresRepository.findAll();
             System.out.println(">>> [POSTGRES] Total de filas leídas de la base de datos: " + allEntities.size());
@@ -116,8 +112,46 @@ public class TreeOrchestratorService {
                 loadAllChildrenRecursivelyPostgres(root.id(), allEntities);
             }
         }
-    }
+        
+        else if (storage != null) {
+            System.out.println(">>> [MEMORY STORAGE] Cargando estructura de árbol desde la memoria...");
+            
+            List<NodeDTO> allNodes = storage.findAll();
+            
+            List<NodeDTO> roots = allNodes.stream()
+                .filter(n -> n.parentId() == null 
+                        || n.parentId().trim().isEmpty() 
+                        || n.parentId().equalsIgnoreCase("null"))
+                .toList();
 
+            for (NodeDTO root : roots) {
+                try {
+                    strategy.createRoot(root);
+                } catch (Exception e) {
+                   
+                }
+                loadAllChildrenRecursivelyMemory(root.id(), allNodes);
+            }
+        }
+    } 
+    
+    private void loadAllChildrenRecursivelyMemory(String parentId, List<NodeDTO> allNodes) {
+        List<NodeDTO> children = allNodes.stream()
+            .filter(n -> parentId.equals(n.parentId()))
+            .toList();
+
+        for (NodeDTO child : children) {
+            try {
+                if (strategy.findNode(child.id()) == null) {
+                    strategy.insert(parentId, child);
+                }
+            } catch (Exception e) {
+                
+            }
+            
+            loadAllChildrenRecursivelyMemory(child.id(), allNodes);
+        }
+    }
     private void loadAllChildrenRecursivelyMongo(String parentId, List<MongoNodeDocument> allNodes) {
         List<MongoNodeDocument> children = allNodes.stream()
             .filter(n -> parentId.equals(n.getParentId()))
@@ -162,6 +196,8 @@ public class TreeOrchestratorService {
         } else if (mongoRepository != null) {
             MongoNodeDocument doc = new MongoNodeDocument(nodeDTO.id(), nodeDTO.name(), nodeDTO.type(), parentId);
             mongoRepository.save(doc);
+        } else if (storage != null) {
+            storage.save(nodeDTO);
         } else {
             throw new RuntimeException("No hay repositorio activo configurado.");
         }
