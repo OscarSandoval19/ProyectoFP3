@@ -208,7 +208,7 @@ paths:
   /tree/validate:
     get:
       summary: Validación de Ciclos e Integridad
-      description: Verifica el grafo estructural; devuelve true si no posee bucles cerrados (es un árbol válido).
+      description: Verifica el grafo estructural; devuelve false si no posee bucles cerrados (es un árbol válido).
       operationId: hasCycles
       responses:
         '200':

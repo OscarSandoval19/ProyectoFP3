@@ -118,19 +118,38 @@ public class CollectionsTreeStrategy implements TreeAlgorithmStrategy<NodeDTO> {
 
     @Override
     public List<NodeDTO> getDFS() {
-        List<NodeDTO> result = new ArrayList<>();
-        if (rootId == null) return result;
-        Deque<String> stack = new ArrayDeque<>();
-        stack.push(rootId);
-        while (!stack.isEmpty()) {
-            String currentId = stack.pop();
-            result.add(findNode(currentId));
-            List<NodeDTO> children = getChildrenOf(currentId);
-            for (int i = children.size() - 1; i >= 0; i--) {
-                stack.push(children.get(i).id());
+        List<NodeDTO> resultado = new ArrayList<>();
+        
+        // 1. Validamos que exista un ID de raíz configurado
+        if (rootId == null) {
+            return resultado;
+        }
+        
+        // 2. Buscamos el objeto NodeDTO de la raíz usando el ID
+        NodeDTO raiz = findNode(rootId); 
+        if (raiz == null) {
+            return resultado;
+        }
+
+        // 3. Definimos una Pila (Stack) para procesar en profundidad (LIFO)
+        java.util.Stack<NodeDTO> pila = new java.util.Stack<>();
+        pila.push(raiz);
+
+        while (!pila.isEmpty()) {
+            NodeDTO actual = pila.pop();
+            resultado.add(actual);
+
+            // 4. Obtenemos los hijos del nodo actual usando el método getChildrenOf que ya tienes
+            List<NodeDTO> hijos = getChildrenOf(actual.id());
+            if (hijos != null) {
+                // Se añaden a la pila de atrás hacia adelante para mantener el orden correcto
+                for (int i = hijos.size() - 1; i >= 0; i--) {
+                    pila.push(hijos.get(i));
+                }
             }
         }
-        return result;
+
+        return resultado;
     }
 
     @Override
